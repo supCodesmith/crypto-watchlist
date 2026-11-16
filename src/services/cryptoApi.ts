@@ -12,14 +12,37 @@ export interface CoinMarketData {
   price_change_percentage_24h: number | null;
 }
 
+export interface CoinSearchResult {
+  id: string;
+  name: string;
+  symbol: string;
+  thumb: string;
+  market_cap_rank: number | null;
+}
+
+interface CoinSearchResponse {
+  coins: CoinSearchResult[];
+}
+
 export const cryptoApi = createApi({
   reducerPath: "cryptoApi",
 
   baseQuery: fetchBaseQuery({
     baseUrl: "https://api.coingecko.com/api/v3/",
+
+    prepareHeaders: (headers) => {
+      const apiKey = import.meta.env.VITE_COINGECKO_API_KEY;
+
+      if (apiKey) {
+        headers.set("x-cg-demo-api-key", apiKey);
+      }
+
+      return headers;
+    },
   }),
 
   endpoints: (builder) => ({
+    // Fetch market data for selected coins.
     getCoinsMarkets: builder.query<CoinMarketData[], string[]>({
       query: (coinIds) => ({
         url: "coins/markets",
@@ -30,7 +53,20 @@ export const cryptoApi = createApi({
         },
       }),
     }),
+
+    // Search for cryptocurrencies by name or symbol.
+    searchCoins: builder.query<CoinSearchResponse, string>({
+      query: (searchTerm) => ({
+        url: "search",
+        params: {
+          query: searchTerm,
+        },
+      }),
+    }),
   }),
 });
 
-export const { useGetCoinsMarketsQuery } = cryptoApi;
+export const {
+  useGetCoinsMarketsQuery,
+  useSearchCoinsQuery,
+} = cryptoApi;
