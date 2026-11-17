@@ -20,7 +20,7 @@ function Watchlist() {
     (state) => state.watchlist.coinIds
   );
 
-  // Wait briefly after typing before sending the search request.
+  // Debounce cryptocurrency search.
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
@@ -29,7 +29,7 @@ function Watchlist() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Search CoinGecko for matching cryptocurrencies.
+  // Search for cryptocurrencies.
   const {
     data: searchData,
     isFetching: isSearching,
@@ -38,14 +38,18 @@ function Watchlist() {
     skip: debouncedSearch.length < 2,
   });
 
-  // Fetch market data for coins in the watchlist.
+  // Fetch and automatically refresh market data.
   const {
     data: coins = [],
     isLoading,
     isFetching,
     isError,
+    refetch,
   } = useGetCoinsMarketsQuery(coinIds, {
     skip: coinIds.length === 0,
+    pollingInterval: 60000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
 
   const handleAdd = (coinId: string) => {
@@ -66,6 +70,7 @@ function Watchlist() {
     }).format(value);
   };
 
+  // Maintain the order of coins in the watchlist.
   const orderedCoins = coinIds
     .map((id) => coins.find((coin) => coin.id === id))
     .filter((coin): coin is CoinMarketData => Boolean(coin));
@@ -139,12 +144,21 @@ function Watchlist() {
       <hr />
 
       <section>
-        <h2>Your Crypto Watchlist</h2>
+        <div>
+          <h2>Your Crypto Watchlist</h2>
+
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching || coinIds.length === 0}
+          >
+            {isFetching ? "Updating..." : "Refresh Prices"}
+          </button>
+        </div>
 
         {isLoading && <p>Loading market data...</p>}
 
         {isFetching && !isLoading && (
-          <p>Refreshing market data...</p>
+          <p>Updating cryptocurrency prices...</p>
         )}
 
         {isError && (
@@ -155,7 +169,9 @@ function Watchlist() {
           <p>Your watchlist is empty. Search for a coin above.</p>
         )}
 
-        {!isLoading && !isError && coinIds.length > 0 &&
+        {!isLoading &&
+          !isError &&
+          coinIds.length > 0 &&
           orderedCoins.length === 0 && (
             <p>No market data found for your saved coins.</p>
           )}
