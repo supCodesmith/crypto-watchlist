@@ -24,6 +24,17 @@ interface CoinSearchResponse {
   coins: CoinSearchResult[];
 }
 
+export interface HistoricalPriceData {
+  prices: [number, number][];
+  market_caps: [number, number][];
+  total_volumes: [number, number][];
+}
+
+interface PriceHistoryParams {
+  coinId: string;
+  days: "1" | "7" | "30";
+}
+
 export const cryptoApi = createApi({
   reducerPath: "cryptoApi",
 
@@ -42,7 +53,6 @@ export const cryptoApi = createApi({
   }),
 
   endpoints: (builder) => ({
-    // Fetch market data for selected coins.
     getCoinsMarkets: builder.query<CoinMarketData[], string[]>({
       query: (coinIds) => ({
         url: "coins/markets",
@@ -54,12 +64,24 @@ export const cryptoApi = createApi({
       }),
     }),
 
-    // Search for cryptocurrencies by name or symbol.
     searchCoins: builder.query<CoinSearchResponse, string>({
       query: (searchTerm) => ({
         url: "search",
         params: {
           query: searchTerm,
+        },
+      }),
+    }),
+
+    getCoinPriceHistory: builder.query<
+      HistoricalPriceData,
+      PriceHistoryParams
+    >({
+      query: ({ coinId, days }) => ({
+        url: `coins/${coinId}/market_chart`,
+        params: {
+          vs_currency: "usd",
+          days,
         },
       }),
     }),
@@ -69,4 +91,5 @@ export const cryptoApi = createApi({
 export const {
   useGetCoinsMarketsQuery,
   useSearchCoinsQuery,
+  useGetCoinPriceHistoryQuery,
 } = cryptoApi;
